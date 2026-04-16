@@ -1,35 +1,51 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarActiveTintColor: Colors.dark.tint,
+        tabBarInactiveTintColor: Colors.dark.tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: Colors.dark.surface,
+          borderTopColor: Colors.dark.border,
+        },
+        headerStyle: {
+          backgroundColor: Colors.dark.background,
+        },
+        headerTintColor: Colors.dark.text,
+        headerShadowVisible: false,
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="songs"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Songs',
+          tabBarIcon: ({ color }) => <TabBarIcon name="music.note" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="library"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Library',
+          tabBarIcon: ({ color }) => <TabBarIcon name="library" color={color} />,
         }}
       />
     </Tabs>
+  );
+}
+
+function TabBarIcon({ name, color }: { name: string; color: string }) {
+  const icons: Record<string, string> = {
+    'music.note': '🎵',
+    library: '📚',
+  };
+  return (
+    <React.Fragment>
+      {icons[name]}
+    </React.Fragment>
   );
 }
