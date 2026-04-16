@@ -12,7 +12,7 @@ export default function NowPlayingScreen() {
         <Text style={styles.subtitle}>Music Player</Text>
         <Text style={styles.text}>Now Playing will appear here once Phase 3 is implemented.</Text>
       </View>
-      <Link href="/" dismissTo asChild>
+      <Link href="/songs" dismissTo asChild>
         <Pressable style={styles.closeButton}>
           <Text style={styles.closeText}>Close</Text>
         </Pressable>

@@ -1,7 +1,16 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Text } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+
+function TabBarIcon({ name }: { name: string }) {
+  const icons: Record<string, string> = {
+    'music.note': '🎵',
+    library: '📚',
+  };
+  return <Text style={{ fontSize: 20 }}>{icons[name]}</Text>;
+}
 
 export default function TabLayout() {
   return (
@@ -24,28 +33,16 @@ export default function TabLayout() {
         name="songs"
         options={{
           title: 'Songs',
-          tabBarIcon: ({ color }) => <TabBarIcon name="music.note" color={color} />,
+          tabBarIcon: () => <TabBarIcon name="music.note" />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color }) => <TabBarIcon name="library" color={color} />,
+          tabBarIcon: () => <TabBarIcon name="library" />,
         }}
       />
     </Tabs>
-  );
-}
-
-function TabBarIcon({ name, color }: { name: string; color: string }) {
-  const icons: Record<string, string> = {
-    'music.note': '🎵',
-    library: '📚',
-  };
-  return (
-    <React.Fragment>
-      {icons[name]}
-    </React.Fragment>
   );
 }
