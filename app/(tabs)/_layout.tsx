@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { Text } from 'react-native';
 import React from 'react';
 
 import { Colors } from '@/constants/theme';
@@ -43,9 +44,5 @@ function TabBarIcon({ name, color }: { name: string; color: string }) {
     'music.note': '🎵',
     library: '📚',
   };
-  return (
-    <React.Fragment>
-      {icons[name]}
-    </React.Fragment>
-  );
+  return <Text style={{ color }}>{icons[name]}</Text>;
 }
