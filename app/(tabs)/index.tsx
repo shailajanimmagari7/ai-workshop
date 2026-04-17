@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Text, View, FlatList, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,9 @@ import {
 } from '@/services/permissionService';
 import { discoverSongs } from '@/services/musicDiscoveryService';
 import { PermissionDeniedView } from '@/components/PermissionDeniedView';
+import { SearchBar } from '@/components/SearchBar';
+import { SortPicker, SortOption } from '@/components/SortPicker';
+import { SongListItem } from '@/components/SongListItem';
 import type { Song } from '@/types/Song';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error' | 'empty';
@@ -19,10 +22,13 @@ type LoadingState = 'idle' | 'loading' | 'success' | 'error' | 'empty';
 export default function SongsScreen() {
   const permissionStatus = usePlayerStore((state) => state.permissionStatus);
   const setPermissionStatus = usePlayerStore((state) => state.setPermissionStatus);
+  const setQueue = usePlayerStore((state) => state.setQueue);
 
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [allSongs, setAllSongs] = useState<Song[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('az');
 
   const loadSongs = useCallback(async () => {
     setLoadingState('loading');
@@ -33,17 +39,17 @@ export default function SongsScreen() {
     if (error) {
       setLoadingState('error');
       setErrorMessage(error.message);
-      setSongs([]);
+      setAllSongs([]);
       return;
     }
 
     if (discoveredSongs.length === 0) {
       setLoadingState('empty');
-      setSongs([]);
+      setAllSongs([]);
       return;
     }
 
-    setSongs(discoveredSongs);
+    setAllSongs(discoveredSongs);
     setLoadingState('success');
   }, []);
 
@@ -94,11 +100,53 @@ export default function SongsScreen() {
     await checkAndRequestPermissions();
   }, [checkAndRequestPermissions]);
 
+  const handleSongPress = useCallback(
+    (song: Song, index: number, songs: Song[]) => {
+      setQueue(songs, index);
+    },
+    [setQueue]
+  );
+
+  const filteredAndSortedSongs = useMemo(() => {
+    let result = [...allSongs];
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (song) =>
+          song.title.toLowerCase().includes(query) ||
+          song.artist.toLowerCase().includes(query)
+      );
+    }
+
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case 'az':
+          return a.title.localeCompare(b.title);
+        case 'za':
+          return b.title.localeCompare(a.title);
+        case 'artist':
+          return a.artist.localeCompare(b.artist);
+        case 'duration':
+          return a.duration - b.duration;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [allSongs, searchQuery, sortOption]);
+
+  const displayedSongs = filteredAndSortedSongs;
+
   const renderSongItem = useCallback(
-    ({ item }: { item: Song }) => (
-      <SongListItem song={item} />
+    ({ item, index }: { item: Song; index: number }) => (
+      <SongListItem
+        song={item}
+        onPress={() => handleSongPress(item, index, displayedSongs)}
+      />
     ),
-    []
+    [handleSongPress, displayedSongs]
   );
 
   const keyExtractor = useCallback((item: Song) => item.id, []);
@@ -166,47 +214,29 @@ export default function SongsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.title}>Songs</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Songs</Text>
+        <View style={styles.headerControls}>
+          <SortPicker value={sortOption} onChange={setSortOption} />
+        </View>
+      </View>
+      <SearchBar value={searchQuery} onChangeText={setSearchQuery} />
       <FlatList
-        data={songs}
+        data={displayedSongs}
         renderItem={renderSongItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
         refreshing={false}
         onRefresh={handleRefresh}
+        ListEmptyComponent={
+          searchQuery ? (
+            <View style={styles.emptySearchContainer}>
+              <Text style={styles.emptySearchText}>No songs match your search</Text>
+            </View>
+          ) : null
+        }
       />
     </SafeAreaView>
-  );
-}
-
-function SongListItem({ song }: { song: Song }) {
-  const formatDuration = (ms: number) => {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.songItem,
-        pressed && styles.songItemPressed,
-      ]}
-    >
-      <View style={styles.songIconContainer}>
-        <Ionicons name="musical-note" size={24} color={Colors.dark.textSecondary} />
-      </View>
-      <View style={styles.songInfo}>
-        <Text style={styles.songTitle} numberOfLines={1}>
-          {song.title}
-        </Text>
-        <Text style={styles.songArtist} numberOfLines={1}>
-          {song.artist}
-        </Text>
-      </View>
-      <Text style={styles.songDuration}>{formatDuration(song.duration)}</Text>
-    </Pressable>
   );
 }
 
@@ -215,13 +245,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.dark.background,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingRight: Spacing.xs,
+  },
   title: {
     fontSize: FontSizes.xxxl,
     fontWeight: 'bold',
     color: Colors.dark.text,
     paddingHorizontal: Spacing.md,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.xs,
+  },
+  headerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   centerContainer: {
     flex: 1,
@@ -277,41 +317,13 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 100,
   },
-  songItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-  },
-  songItemPressed: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: BorderRadius.md,
-    marginHorizontal: Spacing.sm,
-  },
-  songIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.dark.surface,
-    justifyContent: 'center',
+  emptySearchContainer: {
+    padding: Spacing.xl,
     alignItems: 'center',
   },
-  songInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  songTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: '500',
-    color: Colors.dark.text,
-  },
-  songArtist: {
-    fontSize: FontSizes.sm,
+  emptySearchText: {
+    fontSize: FontSizes.md,
     color: Colors.dark.textSecondary,
-    marginTop: 2,
-  },
-  songDuration: {
-    fontSize: FontSizes.sm,
-    color: Colors.dark.textTertiary,
+    textAlign: 'center',
   },
 });

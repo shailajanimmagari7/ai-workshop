@@ -13,7 +13,6 @@
       "infoPlist": {
         "NSAppleMusicUsageDescription": "This app needs access to your music library to play your songs.",
         "UIBackgroundModes": [
-          "audio",
           "audio"
         ]
       },
@@ -76,7 +75,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

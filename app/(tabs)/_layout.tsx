@@ -22,9 +22,10 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="songs"
+        name="index"
         options={{
           title: 'Songs',
+          href: '/',
           tabBarIcon: ({ color }) => <TabBarIcon name="music.note" color={color} />,
         }}
       />
